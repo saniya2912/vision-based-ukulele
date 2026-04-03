@@ -16,6 +16,7 @@ import threading
 import time
 from typing import Optional
 
+import numpy as np
 import requests
 
 try:
@@ -42,7 +43,7 @@ API_KEY      = os.environ.get("ELEVENLABS_API_KEY", "")
 CHORD_PROMPTS: dict[str, str] = {
     "C":  "ukulele strumming a bright C major chord, clean acoustic",
     "G":  "ukulele strumming a warm G major chord, clean acoustic",
-    "Am": "ukulele strumming a mellow A minor chord, clean acoustic",
+    "Am": "single clean downstroke strum on ukulele A minor chord, one hit, acoustic",
     "F":  "ukulele strumming an F major chord, clean acoustic",
 }
 
@@ -160,11 +161,23 @@ class AudioPlayer:
 
     def _load_cached(self, chord: str, path: str) -> None:
         try:
-            self._sounds[chord] = pygame.mixer.Sound(path)
+            sound = pygame.mixer.Sound(path)
+            self._sounds[chord] = self._normalize(sound)
             print(f"[AudioPlayer] Loaded  {os.path.basename(path)}")
         except Exception as exc:
             print(f"[AudioPlayer] Could not load {path}: {exc}")
             self._try_fallback(chord)
+
+    @staticmethod
+    def _normalize(sound: "pygame.mixer.Sound", target_rms: float = 5000.0) -> "pygame.mixer.Sound":
+        """Scale sound amplitude so all chords play at the same perceived volume."""
+        samples = pygame.sndarray.array(sound).astype(np.float32)
+        rms = np.sqrt(np.mean(samples ** 2))
+        if rms > 0:
+            samples = samples * (target_rms / rms)
+            samples = np.clip(samples, -32768, 32767).astype(np.int16)
+            sound = pygame.sndarray.make_sound(samples)
+        return sound
 
     def _try_fallback(self, chord: str) -> None:
         """Use a local .wav file if API/cache fails."""

@@ -112,6 +112,13 @@ class GestureClassifier:
                 return chord
         return None
 
+    @staticmethod
+    def is_fist(finger_states: Optional[List[bool]]) -> bool:
+        """Returns True when all fingers are down (closed fist = reset gesture)."""
+        if finger_states is None:
+            return False
+        return not any(finger_states)
+
     # ------------------------------------------------------------------
     # Temporal smoothing
     # ------------------------------------------------------------------
