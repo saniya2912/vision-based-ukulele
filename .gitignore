@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+sounds/*.mp3
+sounds/*.wav
